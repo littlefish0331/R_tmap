@@ -1,8 +1,10 @@
 # README
 
-學習 R package: tmap 的操作。  
-repository的所有函式都確保可以執行。  
 最後更新時間: 2020-05-22。
+
+學習 R package: tmap 的操作。  
+repository的所有函式(code/)都確保可以執行。  
+所需資料也都在 data/。
 
 - R版本: MRO 3.5.3
 - tmap: 2.2
