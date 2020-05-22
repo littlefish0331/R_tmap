@@ -1,0 +1,4 @@
+"0","tmap_mode(mode = ""view"")"
+"0",""
+"0","tm_shape(shp = World) +"
+"0","    tm_polygons(col = ""HPI"")"

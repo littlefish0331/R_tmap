@@ -1,0 +1,660 @@
+---
+title: "07_learn_heatmap_with_tmap"
+author: "Author: [Steve, Yu](https://github.com/littlefish0331)"
+date: "`r Sys.setlocale('LC_TIME', 'English'); format(Sys.time(), '%Y %b %d %a, %H:%M:%S')`" 
+output:
+  rmdformats::readthedown:
+    css: style.css
+    self_contained: TRUE
+    thumbnails: FALSE
+    lightbox: TRUE
+    gallery: FALSE
+    highlight: tango #探戈橘
+    code_folding: show
+    toc_depth: 3
+    
+---
+
+```{r setup, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+rm(list = ls()); gc()
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(data.table)
+library(tmap)
+knitr::opts_chunk$set(
+	# 這邊是針對所有chunk的設定
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# File Target
+
+- learn tmp package
+
+---
+
+# tmp tutorial
+
+有很多個，以官方提供的資料或連結為主，  
+這是第三份。  
+
+[reproduction code from JSS article 'tmap: Thematic Maps in R'](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-JSS-code.html)
+
+配合 PDF 一起看，檔案在 reference/07_JSS_tmap Thematic Maps in R.pdf。  
+文章不用閱讀完，因為語法是舊的。
+
+
+---
+
+# reproduction code from JSS article ‘tmap: Thematic Maps in R’
+
+## Introduction
+
+The article _Tennekes, M. tmap: Thematic Maps in R (2018), Journal of Statistical Software 84(6), 1-39,_ [http://dx.doi.org/10.18637/jss.v084.i06](http://dx.doi.org/10.18637/jss.v084.i06) describes version 1.x of tmap and tmaptools.  
+Tennekes, M.tmap:Thematic Maps in R(2018),Journal of Statistics Software 84(6), 1-39,  
+http://dx.doi.org/10.18637/jss.v084.i06 描述了版本1.x tmap和tmaptools。  
+
+Since tmap and tmaptools version 2.0 are based on `sf` objects instead of `sp` objects,  
+there are some changes in the code, especially regarding the necessary processing step.  
+由於tmap和tmaptools 2.0版基於`sf`對象而不是`sp`對象，因此代碼中有一些更改，  
+尤其是在必要的處理步驟方面。  
+
+The code for the plotting methods is fully backward compatible,  
+although some messages or warnings may be given for deprecated functions or arguments.
+儘管可能會為不推薦使用的函數或參數給出一些消息或警告，但繪圖方法的代碼是完全向後兼容的。  
+
+This code replaces the script v84i06.R for tmap and tmaptools version 2.0.  
+The produced figures are identical to those included in the article.
+此代碼替換了tmap和tmaptools 2.0版的v84i06.R腳本(07_fromJSS_ori_oldversion.R)。  
+產生的圖片編號與文章中包含的數字相同。
+
+See [`vignette("tmap-changes")`](https://cran.r-project.org/web/packages/tmap/doc/tmap-changes.html) for changes in version 2.x/3.x, which is recommended for people who have read the JSS article.  
+For people who are new to tmap, see [`vignette("tmap-getstarted")`](https://cran.r-project.org/web/packages/tmap/doc/tmap-getstarted.html).  
+有關版本2.x/3.x的更改，請參見vignette("tmap-changes")，建議已閱讀JSS文章的人閱讀。 對於不熟悉tmap的人，請參見vignette(" tmap-getstarted")。
+
+```{r}
+###########################################################################
+## This script will replicate the figures (except the screenshots)
+## and write them to files.
+## The working directory should be set the the parent folder of this script.
+###########################################################################
+
+## install.packages(c("tmap", "tmaptools"))
+library("tmap") # required version 2.0 or later
+library("tmaptools") # required version 2.0 or later
+
+data("World", "metro", package = "tmap")
+metro$growth <- (metro$pop2020 - metro$pop2010) / (metro$pop2010 * 10) * 100
+```
+
+
+## Section 1.1
+
+```{r}
+#############################
+## Figure 1
+#############################
+
+m1 <- 
+  tm_shape(World) +
+  tm_polygons(col = "income_grp", title = "Income class", 
+              palette = "-Blues", contrast = 0.2, 
+              border.col = "grey30", id = "name") +
+  tm_text(text = "iso_a3", size = "AREA", col = "grey30", root = 3) +
+  
+  tm_shape(shp = metro) +
+  tm_bubbles(size = "pop2010", col = "growth",
+             border.col = "black", border.alpha = 0.5,
+             breaks = c(-Inf, 0, 2, 4, 6, Inf) ,
+             palette = "-RdYlGn",
+             title.size = "Metro population (2010)",
+             title.col = "Annual growth rate (%)",
+             id = "name",
+             popup.vars = c("pop2010", "pop2020", "growth")) +
+  tm_style(style = "gray") +
+  tm_format(format = "World", frame.lwd = 2) #mode=plot才有影響。
+
+# tmap_mode(mode = "view")
+tmap_mode(mode = "plot")
+m1
+
+# tmap_save(m1, "bubble.png", width = 6.125, height = 3, scale = .75, dpi = 300, asp = 0, outer.margins = 0)
+```
+
+
+## Section 3.1
+
+```{r}
+#############################
+## Figure 2
+#############################
+
+m0 <- tm_shape(shp = metro) + 
+  tm_bubbles(size = "pop2030") +
+  tm_style(style = "cobalt") +
+  tm_format(format = "World")
+
+# ttm() +
+m0
+# tmap_save(m0, "metro2030.png", width = 6.125, scale = .5, dpi = 300, outer.margins = 0)
+```
+
+
+## Section 3.2
+
+```{r}
+#############################
+## Figure 3
+#############################
+
+m21 <- tm_shape(World) + 
+  tm_polygons(col = c("blue", "red")) + 
+  tm_layout(frame.lwd = 1.5) + 
+  tm_facets(ncol = 2)
+
+# ttm() +
+m21
+# tmap_save(tm = m21, filename = "facets1.png", 
+#           width = 6.125, height = 1.54, 
+#           scale = .75, dpi = 300, outer.margins = 0)
+```
+
+
+```{r}
+# free.coords: 是否不限制同樣的經緯相對位置。
+
+# ---
+#############################
+## Figure 4
+#############################
+m22 <- tm_shape(World) + 
+  tm_polygons("red") +
+  tm_facets(by = "continent", ncol = 4, free.coords = F) + 
+  tm_shape(World) + 
+  tm_borders()
+
+
+# ttm() +
+m22
+# tmap_save(tm = m22, filename = "facets2.png", 
+#           width = 6.125, height = 1.8, 
+#           scale = .75, dpi = 300, outer.margins = 0)
+```
+
+
+```{r}
+#############################
+## Figure 5
+#############################
+tm1 <- tm_shape(World) + tm_polygons()
+tm2 <- tm_shape(metro) + tm_dots()
+
+
+# png(filename = "facets3.png", 
+#     width = 6.125, height = 1.54, 
+#     units = "in", res = 300)
+
+# ttm() +
+tmap_arrange(tm1, tm2, ncol = 2, outer.margins = .01)
+# dev.off()
+```
+
+
+## Section 4.1
+
+```{r}
+#############################
+## Figure 6
+#############################
+
+tmap_mode("view")
+m1
+```
+
+
+## Section 4.2
+
+```{r}
+#############################
+## Figure 7
+#############################
+
+data("land", "rivers", package = "tmap")
+
+m2 <- 
+  tm_shape(shp = land) +
+  tm_raster(col = "elevation", 
+            breaks = c(-Inf, 250, 500, 1000, 1500, 2000, 2500, 3000, 4000, Inf),  
+            palette = terrain.colors(9), 
+            title = "Elevation (m)") +
+  
+  tm_shape(shp = rivers) + 
+  tm_lines(col = "lightblue", lwd = "strokelwd", scale = 1.5, legend.lwd.show = F) +
+  
+  tm_shape(shp = World, is.master = TRUE) + #這個TRUE的作用很重要
+  tm_borders("grey20", lwd = .5) +
+  
+  tm_grid(projection = "longlat", labels.size = 0.4, lwd = 0.25) +
+  tm_text("name", size = "AREA") +
+  
+  tm_compass(position = c(0.08, 0.45), color.light = "grey90", size = 3) + #指南針位置
+  
+  tm_credits(text = "Eckert IV projection", position = c("RIGHT", "BOTTOM")) +
+  
+  tm_style(style = "classic",
+           bg.color = "lightblue",
+           space.color = "grey90",
+           inner.margins = c(0.04, 0.04, 0.03, 0.02), 
+           earth.boundary = TRUE) + #以地球為邊界變為橢圓。
+  
+  tm_legend(position = c("left", "bottom"), 
+            frame = TRUE,
+            bg.color = "lightblue")
+
+tmap_mode("plot")
+m2
+
+# 輸出會比較好看~
+tmap_save(tm = m2, filename = "../data/classic.png",
+          width = 6.125, 
+          scale = .7, dpi = 300, outer.margins = 0) #有錯誤題是說要設定outer.margins=0.1
+```
+
+
+## Section 4.3
+
+```{r}
+#############################
+## Figure 8
+#############################
+
+m3 <- 
+  tm_shape(World, projection = "robin") +
+  tm_polygons(col = c("HPI", "gdp_cap_est"),
+              palette = list("RdYlGn", "Purples"),
+              style = c("pretty", "fixed"), n = 7, 
+              breaks = list(NULL, c(0, 500, 2000, 5000, 10000, 25000, 50000, Inf)),
+              title = c("Happy Planet Index", "GDP per capita")) +
+  tm_style(style = "natural", earth.boundary = c(-180, -87, 180, 87))  +
+  tm_format(format = "World", inner.margins = 0.02, frame = FALSE) +
+  tm_legend(position = c("left", "bottom"), bg.color = "gray95", frame = TRUE) +
+  tm_credits(text = c("", "Robinson projection"), position = c("RIGHT", "BOTTOM"))
+  
+# ttm() + 
+m3
+
+# tmap_save(m3, "../data/world_facets2.png", width = 5, scale = .7, dpi = 300, outer.margins = 0)
+```
+
+
+## Section 4.4
+
+```{r}
+#############################
+## Figure 9
+#############################
+library("readxl")
+library("grid")
+
+# function to obtain Food Environment Atlas data (2014)
+get_food_envir_data <- function() {
+  dir <- tempdir()
+  if (!file.exists(file.path(dir, "DataDownload.xls"))) {
+    download.file("https://www.ers.usda.gov/webdocs/DataFiles/48731/February2014.xls?v=41688", 
+                  destfile = file.path(dir, "DataDownload.xls"), mode = "wb")
+  }
+  res <- tryCatch({
+    read_excel(file.path(dir, "DataDownload.xls"), sheet = "HEALTH")    
+  }, error = function(e) {
+    stop("The excel file cannot be read. Please open it, and remove all sheets except HEALTH. The location of the file is: ", normalizePath(file.path(dir, "DataDownload.xls")))
+  })
+}
+
+# function to obtain US county shape
+get_US_county_2010_shape <- function() {
+  dir <- tempdir()
+  download.file("http://www2.census.gov/geo/tiger/GENZ2010/gz_2010_us_050_00_20m.zip", 
+                destfile = file.path(dir, "gz_2010_us_050_00_20m.zip"))
+  unzip(file.path(dir, "gz_2010_us_050_00_20m.zip"), exdir = dir)
+  US <- sf::read_sf(file.path(dir, "gz_2010_us_050_00_20m.shp"))
+  levels(US$NAME) <- iconv(levels(US$NAME), from = "latin1", to = "utf8")
+  US
+}
+
+# obtain Food Environment Atlas data
+# FEA <- get_food_envir_data()
+FEA <- read_excel("../data/DataDownload.xls", sheet = "HEALTH")
+
+# obtain US county shape
+# US <- get_US_county_2010_shape()
+US <- sf::read_sf("../data/gz_2010_us_050_00_20m/gz_2010_us_050_00_20m.shp")
+levels(US$NAME) <- iconv(levels(US$NAME), from = "latin1", to = "utf8")
+
+# ---
+us1 <- qtm(shp = US)
+
+us1
+# tmap_save(us1, "../data/US1.png", scale = .5, width = 6.125, asp = 0, outer.margins = 0)
+```
+
+
+```{r}
+#############################
+## Figure 10
+#############################
+library(dplyr)
+library(sf)
+
+US$FIPS <- paste0(US$STATE, US$COUNTY)
+
+# append data to shape
+US <- left_join(US, FEA, by = c("FIPS", "FIPS"))
+unmatched_data <- FEA %>% filter(!(FIPS %in% US$FIPS))
+
+tmap_mode("view")
+qtm(US, fill = "PCT_OBESE_ADULTS10")
+```
+
+```{r}
+# 有人的地圖性質不乖，
+# 應該要是 MULTIPOLYGON，但是有些是 GEOMETRYCOLLECTION。
+# US_cont$geometry %>% sapply(., attr, which = "class") %>% c() %>% table
+# US_AK$geometry %>% sapply(., attr, which = "class") %>% c() %>% table
+
+# ---
+#############################
+## Figure 11
+#############################
+
+US_cont <- US %>% 
+  subset(!STATE %in% c("02", "15", "72")) %>% 
+  simplify_shape(shp = ., fact = 0.2) 
+
+US_AK <- US %>% 
+  subset(STATE == "02") %>% 
+  simplify_shape(0.2) 
+
+US_HI <- US %>% 
+  subset(STATE == "15") %>% 
+  simplify_shape(0.2) 
+
+# create state boundaries
+# 製作 boundaries 的方式要學起來
+US_states <- US_cont %>% 
+    dplyr::select(geometry) %>% 
+    stats::aggregate(by = list(US_cont$STATE), FUN = mean)
+
+US_AK_states <- US_AK %>% 
+    dplyr::select(geometry) %>% 
+    stats::aggregate(by = list(US_AK$STATE), FUN = mean)
+
+US_HI_states <- US_HI %>% 
+    dplyr::select(geometry) %>% 
+    stats::aggregate(by = list(US_HI$STATE), FUN = mean)
+
+
+# contiguous US
+# 可以刪除第1259, 2407筆
+m_cont <- tm_shape(US_cont, projection = 2163) +
+  tm_polygons(col = "PCT_OBESE_ADULTS10", 
+              border.col = "gray50", 
+              border.alpha = .5, 
+              title = "", 
+              showNA = TRUE) +
+  
+  tm_shape(US_states) +
+  tm_borders(lwd = 1, col = "black", alpha = .5) +
+  tm_credits(text = paste0("Data @ Unites States Department of Agriculture",
+                           "\nShape @ Unites States Census Bureau"), #只有在mode=plot才會出現
+             position = c("right", "bottom")) +
+  
+  tm_layout(title = "2010 Adult Obesity by County, percent", 
+            title.position = c("center", "top"), 
+            legend.position = c("right", "bottom"), 
+            frame = FALSE, 
+            inner.margins = c(0.1, 0.1, 0.05, 0.05))
+# tmap_mode(mode = "plot")
+# m_cont
+
+
+# Alaska inset0
+# 因為一些錯誤，所以要加上state邊界。不然就要扣除第24筆。
+m_AK <- tm_shape(US_AK, projection = 3338) +
+  tm_polygons(col = "PCT_OBESE_ADULTS10", 
+              border.col = "gray50", border.alpha = .5, 
+              breaks = seq(10, 50, by = 5)) + 
+  
+  tm_shape(shp = US_AK_states) +
+  tm_borders(lwd = 1, col = "black", alpha = .5) +
+  
+  tm_layout(title = "Alaska", 
+            title.size = 0.8, 
+            legend.show = FALSE, 
+            bg.color = NA, 
+            frame = FALSE)
+# tmap_mode(mode = "plot")
+# m_AK
+
+
+# Hawaii inset
+m_HI <- tm_shape(US_HI, projection = 3759) +
+  tm_polygons("PCT_OBESE_ADULTS10", 
+              border.col = "gray50", 
+              border.alpha = .5, 
+              breaks = seq(10, 50, by = 5)) +
+  
+  tm_shape(shp = US_HI_states) +
+  tm_borders(lwd = 1, col = "black", alpha = .5) +
+  
+  tm_layout(title = "Hawaii", legend.show = FALSE, 
+            bg.color = NA, 
+            title.position = c("LEFT", "BOTTOM"), 
+            title.size = 0.8, frame = FALSE)
+# tmap_mode(mode = "plot")
+# m_HI
+
+
+# specify viewports for Alaska and Hawaii
+# 原點(0,0)在左下角
+library("grid")
+vp_AK <- viewport(x = 0.15, y = 0.15, width = 0.3, height = 0.3)
+vp_HI <- viewport(x = 0.4, y = 0.1, width = 0.2, height = 0.1)
+
+# save map
+tmap_mode("plot")
+tmap_save(tm = m_cont, filename = "../data/USchoro.png", 
+          scale = 0.7, width = 6.125, outer.margins = 0,
+          insets_tm = list(m_AK, m_HI), 
+          insets_vp = list(vp_AK, vp_HI))
+
+```
+
+
+## Section 4.5
+
+```{r}
+#############################
+## Figure 12a
+#############################
+library("sf")
+library("rnaturalearth")
+
+# functions to obtain crimes data
+get_crimes_data <- function(path) {
+  stopifnot(file.exists(path), ("crimes_in_Greater_London_2015-10.zip" %in% list.files(path)))
+  tmp_dir <- tempdir()
+  unzip(file.path(path, "crimes_in_Greater_London_2015-10.zip"), exdir = tmp_dir)
+  rbind(read.csv(file.path(tmp_dir, "2015-10-city-of-london-street.csv")),
+        read.csv(file.path(tmp_dir, "2015-10-metropolitan-street.csv")))
+}
+
+# please download the file "crimes_in_Greater_London_2015-10.zip"  
+# (available on https://www.jstatsoft.org as a supplement of this paper),  
+# and change the path argument below to the location of the downloaded file:
+# crimes <- get_crimes_data(path = "./")
+crimes <- rbind(
+  read.csv("../data/crimes_in_Greater_London_2015-10/2015-10-city-of-london-street.csv"),
+  read.csv("../data/crimes_in_Greater_London_2015-10/2015-10-metropolitan-street.csv"))
+
+# create sf of known locations
+crimes <- crimes[!is.na(crimes$Longitude) & !is.na(crimes$Latitude), ]
+crimes <- st_as_sf(crimes, coords = c("Longitude", "Latitude"), crs = 4326)
+
+# set map projection to British National Grid
+crimes <- st_transform(crimes, crs = 27700)
+
+c1 <- qtm(crimes)
+c1
+# tmap_save(c1, "crimes1.png", scale = .6, width = 3, units = "in", outer.margins = 0)
+```
+
+```{r}
+# 似乎是一個無法解決的問題
+# [Issue with generating maps in RStudio : / Questions and Answers / OpenStreetMap Forum](https://forum.openstreetmap.org/viewtopic.php?id=68079)
+# 因為該套件沒有按照 OSM 的規範， 所以要不到該資料區域的底圖。
+# 解決方法就是改參數type，變成別的底圖，
+# [tmaptools/read_osm.R at master · mtennekes/tmaptools](https://github.com/mtennekes/tmaptools/blob/master/R/read_osm.R)
+
+# ---
+#############################
+## Figure 12b
+#############################
+crimes_osm <- read_osm(crimes, type = "osm-transport")
+c2 <- qtm(crimes_osm) + 
+  qtm(crimes, symbols.col = "red", symbols.size = 0.5)
+c2
+# tmap_save(c2, "crimes2.jpg", scale = .6, width = 3, units = "in", outer.margins = 0)
+```
+
+
+```{r}
+#############################
+## Figure 13
+#############################
+c3 <- qtm(crimes_osm, raster.saturation = 0, raster.alpha = 1) + 
+  qtm(crimes, symbols.col = "Crime.type", symbols.size = 0.5) +
+  tm_legend(outside = TRUE)
+
+c3
+# tmap_save(c3, "crimes3.png", scale = .8, width = 5, height = 4, units = "in", outer.margins = 0)
+```
+
+
+```{r}
+#############################
+## Figure 14
+#############################
+regions <- ne_download(scale = "large", type = "states", 
+                       category = "cultural", returnclass = "sf")
+london <- regions[which(regions$region == "Greater London"),]
+london <- st_transform(london, crs = 27700)
+
+# remove crimes outside Greater London
+crimes_london <- crop_shape(crimes, london, polygon =  TRUE)
+
+c3b <- qtm(crimes_london, dots.alpha = 0.1) +
+  tm_shape(london) + 
+  tm_borders()
+
+c3b
+# tmap_save(c3b, "crimes3b.png", scale = .7, width = 6.125, units = "in", outer.margins = 0)
+```
+
+
+```{r}
+#############################
+## Figure 15
+#############################
+library("devtools")
+# install_github("mtennekes/oldtmaptools")
+library(oldtmaptools)
+
+crime_densities <- smooth_map(crimes_london, 
+                              bandwidth = 0.5, 
+                              breaks = c(0, 50, 100, 250, 500, 1000), 
+                              cover = london)
+
+# download rivers, and get Thames shape
+rivers <- ne_download(scale = "large", type = "rivers_lake_centerlines", category = "physical")
+thames <- crop_shape(rivers, london)
+
+c4 <- tm_shape(crime_densities$polygons) +
+  tm_fill(col = "level", palette = "YlOrRd", title = expression("Crimes per " * km^2)) + 
+  tm_shape(london) + tm_borders() +
+  tm_shape(thames) + tm_lines(col = "steelblue", lwd = 4) +
+  tm_compass(position = c("left", "bottom")) +
+  tm_scale_bar(position = c("left", "bottom")) + 
+  tm_style("gray", title = "Crimes in Greater London\nOctober 2015")
+
+c4
+# tmap_save(c4, "crimes4.png", scale = .7, width = 6.125, units = "in", outer.margins = 0)
+```
+
+
+```{r}
+# 無法做出和原圖一樣，不知道為什麼XD
+
+# ---
+#############################
+## Figure 16
+#############################
+london_city <- london[london$name == "City",]
+crimes_city <- crop_shape(crimes_london, london_city, polygon = TRUE)
+london_osm <- read_osm(london_city, type = "stamen-watercolor", zoom = 13)
+# london_osm <- read_osm(london_city, type = "osm", zoom = 13) #這個底圖不能用了
+
+c5 <- qtm(london_osm, basemaps = "Stamen.Watercolor") +
+  tm_shape(crimes_city) +
+  tm_dots(size = .2) +
+  tm_facets(by = "Crime.type", ncol = 4, free.coords = FALSE)
+
+c5
+# tmap_save(c5, "crimes5.png", scale = 1, width = 6.125, asp = NA, outer.margins = 0)
+```
+
+
+```{r}
+#############################
+## Figure 17
+#############################
+crime_lookup <- c("Anti-social behaviour" = 2, 
+                  "Bicycle theft" = 1, 
+                  "Burglary" = 1,
+                  "Criminal damage and arson" = 2,
+                  "Drugs" = 6, 
+                  "Other crime" = 7,
+                  "Other theft" = 1, 
+                  "Possession of weapons" = 3, 
+                  "Public order" = 2, 
+                  "Robbery" = 1, 
+                  "Shoplifting" = 1,
+                  "Theft from the person" = 1,
+                  "Vehicle crime" = 4,
+                  "Violence and sexual offences" = 5)
+crime_categories <- c("Property Crime",
+                      "Criminal damage and anti-social behaviour",
+                      "Possession of weapons",
+                      "Vehicle crime",
+                      "Violence and sexual offences",
+                      "Drugs",
+                      "Other crime")
+crimes_city$Crime.group <- factor(crime_lookup[crimes_city$Crime.type], 
+                                  labels = crime_categories)
+
+tmap_mode("view")
+tm_shape(shp = crimes_city) +
+  tm_dots(jitter = 0.2, 
+          col = "Crime.group", 
+          palette = "Dark2", 
+          popup.vars = TRUE) +
+  tm_view(alpha = 1, basemaps = "Esri.WorldTopoMap")
+```
+
+
+---
+
+# END
+

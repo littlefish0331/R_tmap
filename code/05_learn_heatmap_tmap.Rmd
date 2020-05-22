@@ -1,0 +1,414 @@
+---
+title: "05_learn_heatmap_with_tmap"
+author: "Author: [Steve, Yu](https://github.com/littlefish0331)"
+date: "`r Sys.setlocale('LC_TIME', 'English'); format(Sys.time(), '%Y %b %d %a, %H:%M:%S')`" 
+output:
+  rmdformats::readthedown:
+    css: style.css
+    self_contained: TRUE
+    thumbnails: FALSE
+    lightbox: TRUE
+    gallery: FALSE
+    highlight: tango #探戈橘
+    code_folding: show
+    toc_depth: 3
+    
+---
+
+```{r setup, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+rm(list = ls()); gc()
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(data.table)
+library(tmap)
+knitr::opts_chunk$set(
+	# 這邊是針對所有chunk的設定
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# File Target
+
+- learn tmp package
+
+---
+
+# tmp tutorial
+
+有很多個，以官方提供的資料或連結為主，  
+這是第一份。
+
+[tmap: get started!](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html)
+
+---
+
+# tmap: get started!
+
+With the tmap package, thematic maps can be generated with great flexibility.  
+The syntax for creating plots is similar to that of ggplot2, but tailored to maps.  
+This vignette is for those who want to get started with tmap within a couple of minutes. 
+使用tmap包，可以非常靈活地生成主題地圖。  
+創建圖的語法與ggplot2相似，但是是為圖量身定制的。  
+此vignette適用於希望在幾分鐘之內開始使用tmap的人。
+
+A more detailed description of tmap can be found in an [article](https://www.jstatsoft.org/article/view/v084i06) published in the Journal of Statistical Software ([JSS](https://www.jstatsoft.org/index)), which describes tmap version 1.11-2.  
+The changes in version 2.0 are described in [`vignette("tmap-changes")`](https://cran.r-project.org/web/packages/tmap/doc/tmap-changes.html).
+有關tmap的更詳細描述，可以在《統計軟件雜誌》(JSS)上發表的一篇文章中找到， 
+該文章介紹了tmap版本1.11-2。  
+vignette("tmap-changes")中介紹了2.0版中的更改。
+
+---
+
+## Hello World!
+
+A good place to start is to create a map of the world.  
+After [installing](https://github.com/mtennekes/tmap#installation) tmap,  
+the following lines of code should create the map shown below:
+
+```{r}
+data("World")
+
+tm_shape(shp = World) +
+    tm_polygons(col = "HPI")
+```
+
+The object `World` is a spatial object of class `sf` from the [sf package](https://cran.r-project.org/package=sf);  
+it is a `data.frame` with a special column that contains a geometry for each row, in this case polygons.  
+
+對象`World`是[sf包](https://cran.r-project.org/package=sf)中類`sf`的空間對象。  
+它是一個帶有特殊列的`data.frame`，其中每一行包含幾何圖形，在本例中為多邊形。 
+
+In order to plot it in tmap, you first need to specify it with `tm_shape`.  
+Plotting layers can be added with the `+` operator, in this case `tm_polygons`.  
+There are many layer functions in tmap, which can easily be found in the documentation  
+by their `tm_` prefix. See also `?'tmap-element'`.  
+為了在tmap中繪製它，首先需要用`tm_shape`指定它。 可以使用+運算符(在本例中為tm_polygons)添加繪圖層。  tmap中有很多圖層函數，可以在文檔中通過它們的`tm_`前綴輕鬆找到。  
+另見`?'tmap-element'`。
+
+> 可以去看一下 worldy資料集 的 geometry 欄位。
+
+
+## Interactive maps
+
+Each map can be plotted as a static image or viewed interactively  
+using `"plot"` and `"view"` modes, respectively.  
+每個地圖可以繪製為靜態圖像，也可以分別使用"繪圖"和"查看"模式進行交互查看。  
+
+The mode can be set with the function `tmap_mode`,  
+and toggling between the modes can be done with the ‘switch’ `ttm()`.  
+可以使用功能`tmap_mode`設置模式，並可以通過 switch `ttm()`來切換模式。
+
+> ttm(): 不用參數，執行過後，就表示tmap_mode()從 plot 轉換成 view。
+
+```{r}
+tmap_mode(mode = "view")
+
+tm_shape(shp = World) +
+    tm_polygons(col = "HPI")
+```
+
+
+## Multiple shapes and layers
+
+A shape is a spatial object (with a class from `sf`, `sp` `stars`, or `raster`).  
+Multiple shapes and also multiple layers per shape can be plotted:
+
+形狀是空間對象(具有`sf`, `sp` `stars`, or `raster`的類)。  
+可以繪製多個形狀，每個形狀也可以繪製多個圖層: 
+
+```{r}
+# elevation: 海拔
+# metro: 地鐵。資料集為各城市的地鐵運量
+# scale: symbol size multiplier number.
+# is.master = T，地圖會預先縮到這個圖層。
+# 似乎沒辦法讓 legend 個別設置是否要顯示。
+
+# ---
+# 在 plot mode 之下，tm_legend(show = FALSE)，會將所有legend隱藏。
+# 在 view mode 之下，tm_legend(show = TRUE)，不會顯示圖形(以此例為symbols)圖例，但是區塊圖例會顯示。
+
+# ---
+# data(World, metro, rivers, land)
+data(World, metro, land)
+
+tmap_mode("plot")
+## tmap mode set to plotting
+
+# ttm()+
+tm_shape(shp = land) +
+  tm_raster(col = "elevation", palette = terrain.colors(10), legend.show = T) +
+  
+  tm_shape(shp = World) +
+  tm_borders(col = "white", lwd = .5) +
+  tm_text(text = "iso_a3", size = "AREA") + 
+  
+  tm_shape(shp = metro) + 
+  tm_symbols(col = "red", size = "pop2020", scale = .5) +
+  tm_legend(show = F)
+```
+
+
+## Facets
+
+Facets can be created in three ways:
+可以通過以下三種方式創建構面:
+
+1. By assigning multiple variable names to one aesthetic:  
+通過為一種美學分配多個變量名稱：
+
+> 關於同步的 red circle，會固定在經緯度(0,0)的地方，有點礙眼但是也沒有辦法， 問這是JS的問題。
+> 不過把地圖拉大的話，就看不見了~
+
+[Red circles in latticeView sync mode · Issue #51 · r-spatial/mapview](https://github.com/r-spatial/mapview/issues/51)
+
+> 另外就是 red circle 無法在圖層的上面，目前還沒有找到辦法。
+
+```{r}
+tmap_mode("view")
+tm_shape(shp = World) +
+  tm_polygons(col = c("HPI", "economy")) +
+  tm_facets(sync = TRUE, ncol = 2)
+```
+
+```{r eval = FALSE}
+# 其他地圖同步的寫法
+library(leaflet)
+library(mapview)
+l1 <- leaflet() %>% addProviderTiles(provider = "CartoDB.Positron")
+l2 <- leaflet() %>% addProviderTiles(provider = "OpenStreetMap")
+sync(l1, l2)
+
+m1 <- mapview()
+m2 <- mapview()
+sync(m1, m2, sync.cursor = T)
+```
+
+2. By splitting the spatial data with the `by` argument of `tm_facets`.  
+通過使用`tm_facets`的`by`參數拆分空間數據。
+
+```{r}
+# 如果 facets 的數量沒有正確可能是套件一開始有限制圖塊數量
+# 避免電腦跑不出來~
+# default: c(facets.view = 4, facets.plot = 64)
+# tmap_options(limits = c(facets.view = 12))
+# tmap_options(limits = c(facets.plot = 12))
+
+# ---
+tmap_mode("plot")
+## tmap mode set to plotting
+
+data(NLD_muni)
+NLD_muni$perc_men <- NLD_muni$pop_men / NLD_muni$population * 100
+
+tm_shape(NLD_muni) +
+    tm_polygons(col = "perc_men", palette = "RdYlBu") +
+    tm_facets(by = "province")
+```
+
+3. By using the `tmap_arrange` function:  
+通過使用`tmap_arrange`函數:
+
+> legend 大小的相關設置，除了在圖層函數(tm_polygons, tm_bubbles)，  
+> 本身就有之外，tm_layout()也有更多的設定。
+
+```{r}
+tmap_mode("plot")
+## tmap mode set to plotting
+
+data(NLD_muni)
+tm1 <- tm_shape(NLD_muni) + tm_polygons(col = "population", convert2density = TRUE)
+tm2 <- tm_shape(NLD_muni) + tm_bubbles(size = "population") + tm_layout(legend.show = T)
+
+tmap_arrange(tm1, tm2)
+## Legend labels were too wide.  
+## Therefore, legend.text.size has been set to 0.27.  
+## Increase legend.width (argument of tm_layout) to make the legend wider 
+## and therefore the labels larger.
+
+## The legend is too narrow to place all symbol sizes.
+```
+
+
+## Basemaps and overlay tile maps
+
+底圖和疊加圖塊地圖
+
+Tiled basemaps can be added with the layer function `tm_basemap`.  
+Semi-transparent overlay maps (for example annotation labels) can be added with `tm_tiles`.
+
+可以使用圖層功能`tm_basemap`添加平舖的底圖。  
+可以使用`tm_tiles`添加半透明的覆蓋圖(例如註釋標籤)。
+
+```{r}
+# alpha: 透明度。
+
+# ---
+tmap_mode(mode = "view")
+
+# tm_basemap(server = NA) +
+# tm_basemap(server = NULL) +
+tm_basemap(server = "Stamen.Watercolor") +
+  tm_shape(shp = metro) + 
+  tm_bubbles(size = "pop2020", col = "red") +
+  tm_tiles(server = "Stamen.TonerLabels", alpha = 0.5)
+```
+
+See a [preview of the available tilemaps](http://leaflet-extras.github.io/leaflet-providers/preview/).  
+This list is also accessible in R: `leaflet::providers`.
+
+
+## Options and styles
+
+The functions `tm_layout` and `tm_view` are used to specify the map layout and the interactive aspects respectively.  
+函數`tm_layout`和`tm_view`分別用於指定地圖佈局和交互方面。  
+
+These functions can be used in the same way as the layer functions, e.g.  
+這些功能可以與圖層功能相同的方式使用，例如
+
+```{r}
+# inner.margins: 地圖和邊框的距離，是指地圖和黑色的邊框。bottom, left, top, and right。
+
+# ---
+tmap_mode("plot")
+## tmap mode set to plotting
+
+tm_shape(World) +
+  tm_polygons("HPI") +
+  tm_layout(bg.color = "skyblue", 
+            inner.margins = c(0, .02, .02, .02))
+```
+
+These options, as well as a couple of others, can also be set within with `tmap_options`,  
+which works in the same way as the base R function `options`.  
+這些選項以及其他幾個選項也可以在`tmap_options`中設置，  
+其作用方式與基本R函數`options`相同。  
+
+The main advantage is that these options are set globally,  
+so they do not have to be specified in each map, for the duration of the session.
+主要優點是這些選項是全局設置的，  
+因此在會話期間不必在每個映射中都指定它們。
+
+```{r}
+tmap_options(bg.color = "black", legend.text.color = "white")
+
+tm_shape(World) +
+  tm_polygons(col = "HPI", 
+              title = "Happy Planet Index")
+```
+
+A style is a certain configuration of the tmap options.  
+樣式是tmap選項的特定配置。
+
+```{r}
+tmap_style("classic")
+## tmap style set to "classic"
+## other available styles are: 
+## "white", "gray", "natural", "cobalt", "col_blind", 
+## "albatross", "beaver", "bw", "watercolor"
+
+tm_shape(World) +
+    tm_polygons("HPI", title = "Happy Planet Index")
+```
+
+可以透過 tmap_options_diff() 觀察 options() 有哪些地方變動。
+
+```{r}
+# see what options have been changed
+# diff的部分是來自 tmap_style("classic") 這個指令。
+tmap_options_diff()
+## current tmap options (style "classic") that are different from default tmap options (style "white"):
+## $sepia.intensity
+## [1] 0.7
+## 
+## $frame.double.line
+## [1] TRUE
+## 
+## $fontfamily
+## [1] "serif"
+## 
+## $compass.type
+## [1] "rose"
+## 
+## $basemaps
+## [1] "Esri.WorldTopoMap"
+## 
+## $basemaps.alpha
+## [1] 0.5
+```
+
+```{r}
+# reset the options to the default values
+tmap_options_reset()
+## tmap options successfully reset
+```
+
+New styles can be created; see `?tmap_options`.
+
+
+## Exporting maps
+
+```{r}
+tm <- tm_shape(World) +
+  tm_polygons("HPI", legend.title = "Happy Planet Index")
+
+## save an image ("plot" mode)
+tmap_save(tm = tm, filename = "../data/export_map/world_map.png")
+
+## save as stand-alone HTML file ("view" mode)
+## 這個一定要用絕對路徑，套件沒有寫好。
+## 如果只是存在當前的目錄底下(不可以再多資料夾)則可使用為相對路徑。
+## 如果不在當前目錄，會多一個 world_map_files/
+# tmap_save(tm, filename = "E:/NCHC/project2020/heatmap_learn/data/export_map/world_map.html")
+tmap_save(tm, filename = "world_map.html")
+```
+
+
+## leaflet and shiny integration
+
+Maps made with tmap can be exported to leaflet with the function `tmap_leaflet`.  
+使用tmap製作的地圖可以使用tmap_leaflet函數導出到leaflet。  
+
+Hence, it is possible to make use of leaflet own functionalities.  
+This function is also needed when using tmap in shiny:
+因此，可以利用leaflet自身的功能。  
+在shiny中使用tmap時，也需要此功能：
+
+
+```{r eval = FALSE}
+# in UI part:
+leafletOutput("my_tmap")
+
+# in server part
+output$my_tmap = renderLeaflet({
+    tm <- tm_shape(World) + 
+      tm_polygons("HPI", legend.title = "Happy Planet Index")
+    tmap_leaflet(tm)
+})
+```
+
+## Quick thematic map
+
+Maps can also be made with one function call. This function is `qtm`:
+
+```{r}
+# 會依循上一次的 tmap_mode()
+qtm(shp = World, fill = "HPI", fill.pallete = "RdYlGn")
+```
+
+## Tips 'n Tricks
+
+Run:  
+有很多個小販力可以估看，  
+重複執行 tmap_tip() 就可以看到程式碼跟效果了
+
+```{r}
+tmap_tip()
+```
+
+---
+
+# END
+

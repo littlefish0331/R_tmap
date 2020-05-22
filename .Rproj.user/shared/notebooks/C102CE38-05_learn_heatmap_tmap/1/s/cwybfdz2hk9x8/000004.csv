@@ -1,0 +1,12 @@
+"0","tmap_tip()
+"
+"1","The middle color for diverging palette can be set with midpoint."
+"1"," "
+"1","
+
+"
+"1","data(World)
+tm_shape(World) +
+  tm_polygons(""HPI"", palette = ""RdYlGn"", midpoint = 35)"
+"1","
+"

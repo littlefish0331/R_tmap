@@ -1,0 +1,359 @@
+---
+title: "06_learn_heatmap_with_tmap"
+author: "Author: [Steve, Yu](https://github.com/littlefish0331)"
+date: "`r Sys.setlocale('LC_TIME', 'English'); format(Sys.time(), '%Y %b %d %a, %H:%M:%S')`" 
+output:
+  rmdformats::readthedown:
+    css: style.css
+    self_contained: TRUE
+    thumbnails: FALSE
+    lightbox: TRUE
+    gallery: FALSE
+    highlight: tango #探戈橘
+    code_folding: show
+    toc_depth: 3
+    
+---
+
+```{r setup, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+rm(list = ls()); gc()
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(data.table)
+library(tmap)
+knitr::opts_chunk$set(
+	# 這邊是針對所有chunk的設定
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# File Target
+
+- learn tmp package
+
+---
+
+# tmp tutorial
+
+有很多個，以官方提供的資料或連結為主，  
+這是第二份。  
+
+[tmap: version changes](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-changes.html)
+
+---
+
+# tmap: version changes
+
+This vignette summarizes the main changes in tmap 2.x/3.x in comparison to tmap 1.11-2,  
+which is described in detail in the [JSS paper](https://www.jstatsoft.org/article/view/v084i06).  
+該vignette總結了與tmap 1.11-2相比，tmap 2.x/3.x的主要變化， 
+JSS論文對此進行了詳細介紹。  
+
+The code of this paper for version 2.x/3.x can be found in [`vignette("tmap-JSS-code")`](https://cran.r-project.org/web/packages/tmap/doc/tmap-JSS-code.html).
+可以在vignette("tmap-JSS-code")中找到針對2.x/3.x版的本文代碼。  
+
+For people who are new to tmap, see [`vignette("tmap-getstarted")`](https://cran.r-project.org/web/packages/tmap/doc/tmap-getstarted.html).  
+對於不熟悉tmap的人，請參見vignette("tmap-getstarted")。
+
+---
+
+## Function renaming: tm_ and tmap_
+
+As of version 2.0, all tmap functions have the prefix `tm_` or `tmap_`,  
+with the exception of the function `qtm`.  
+從2.0版開始，所有tmap函數均具有前綴tm_或tmap_，  
+但函數qtm除外。  
+
+Just like in tmap version 1.x, the layer functions start with `tm_`.  
+就像在tmap版本1.x中一樣，圖層功能以tm_開頭。 
+
+In tmap 1.x, the names of the other functions where inconsistent,  
+e.g. animation_tmap and tmap_arrange. In tmap 2.x/3.x, these functions are prefixed with tmap_.  
+在tmap 1.x中，其他函數的名稱不一致，  
+例如 animation_tmap和tmap_arrange。在tmap 2.x/3.x中，這些函數以tmap_為前綴。  
+
+For instance animation_tmap has been renamed to tmap_animation.
+例如，animation_tmap已重命名為tmap_animation。
+
+
+## Spatial data classes
+
+空間數據類
+
+tmap 1.x uses `sp` for representing vector data, and `raster` for raster data.  
+tmap 2.x uses `sf` for representing vector data, and `raster` for raster data.  
+tmap 3.x uses `sf` for representing vector data, and `stars` for raster data.
+
+說明不同版本下，對於空間資料使用哪種套件做包裝。
+
+`sf` (simple features) objects have a simpler structure than `sp` objects.  
+An sf object is nothing more than a `data.frame` with a special geometry column  
+that contains the geometries for the corresponding rows.  
+sf(簡單特徵)對象的結構比sp對像簡單。  
+sf對像不過是帶有特殊幾何列的data.frame，其中包含對應行的幾何。  
+
+Such a geometry can be of type spatial point(s), line(s) or polygon(s)  
+or any combination of these in a ‘geometrycollection’ (see `vignette("sf1")`).  
+這樣的幾何可以是"geometrycollection"中的空間點，線或多邊形  
+或它們的任意組合(請參見vignette(" sf1"))。
+
+The layers functions, such as `tm_polygons`, will only draw what they are supposed to draw (in this case polygons).  
+The newly added layer function `tm_sf` will draw all geometries.  
+圖層功能(例如tm_polygons)將僅繪製應繪製的內容(在本例中為多邊形)。 新添加的圖層函數tm_sf將繪製所有幾何圖形。
+
+Finally, all data objects in tmap (except `land`) have been transformed into `sf` objects.  
+The object `land` has been transformed into a `stars` object.
+最後，tmap中的所有數據對象(land除外)都已轉換為sf對象。  
+land對已被轉換為stars對象。
+
+
+## tm_tiles
+
+Layer functions have been added to facilitate tile layers.  
+In version 1.x, it was already possible to add basemaps.  
+In version 2.0, this is facilitated by the explicit layer functions `tm_basemap` and `tm_tiles`.  
+添加了圖層功能以方便平鋪圖層。  
+在1.x版中，已經可以添加底圖。 
+在版本2.0中，顯式圖層函數`tm_basemap`和`tm_tiles`促進了此操作。  
+
+The former creates a basemap tile and the latter an overlay tile.  
+The difference is that `tm_basemap` layers are always drawn at the bottom, whereas the plotting order of (overlay) `tm_tiles` layers is derived from the plot call.  
+前者創建底圖圖塊，而後者創建覆蓋圖塊。  
+區別在於，`tm_basemap`圖層始終在底部繪製，而(overlay)tm_tiles圖層的繪製順序是從繪圖調用中得出的。  
+
+Overlay layers should be semi-transparent to be useful.  
+覆蓋層應該是半透明的，這樣才有用。
+
+Tip: all tilemaps from [http://leaflet-extras.github.io/leaflet-providers/preview/](http://leaflet-extras.github.io/leaflet-providers/preview/) can be used.  
+The names of these maps can also be found in the list object `leaflet::providers`.
+
+提示: 可以使用 http://leaflet-extras.github.io/leaflet-providers/preview/ 中的所有圖塊。  
+這些映射的名稱也可以在列表對象`leaflet::providers`中找到。
+
+```{r}
+data(World, metro)
+tmap_mode("view")
+
+tm_basemap(server = leaflet::providers$CartoDB.PositronNoLabels, group = "CartoDB basemap") +
+  
+  tm_shape(shp = World) +
+  tm_polygons(col = "HPI", group = "Countries") +
+  
+  tm_tiles(server = leaflet::providers$CartoDB.PositronOnlyLabels, group = "CartoDB labels") +
+  
+  tm_shape(metro) +
+  tm_dots(col = "red", group = "Metropolitan areas")
+```
+
+
+## tmap options, styles, and formats
+
+There are many options in tmap.  
+In version 1.x, the default values were stored in `tm_layout` and `tm_view`.  
+Wrapper functions like `tm_style_gray` and `tm_format_World` where used to change these options.
+tmap中有很多選項。  
+在版本1.x中，默認值存儲在`tm_layout`和`tm_view`中。  
+包裝函數(如`tm_style_gray`和`tm_format_World`)用於更改這些選項。
+
+In version 2.0, the options are stored in a similar fashion to the global options.  
+A list of tmap options can be retrieved and options can be set with the function `tmap_options`.  
+在2.0版中，選項以與全局選項相似的方式存儲。  
+可以檢索tmap選項的列表，並可以使用功能`tmap_options`設置選項。  
+
+Its behavior is similar to the base function `options`.  
+其行為類似於基本功能選項。
+
+A style is a configuration of the options used to style a map in a specific way.  
+When set with `tmap_style`, the current options are overwritten according to the new style.  
+The changes can be seen with `tmap_options_diff` and can be reset with `tmap_options_reset`.
+樣式是用於以特定方式設置地圖樣式的選項的配置。  
+使用`tmap_style`設置時，當前選項將根據新樣式覆蓋。  
+更改可以通過`tmap_options_diff`查看，也可以通過`tmap_options_reset`重置。
+
+
+```{r}
+data(World)
+
+# tmap_mode("plot") + 
+qtm(World, fill = "life_exp")
+```
+
+```{r}
+# 個人覺得不錯的: classic, gray, natural, cobalt, col_blind, watercolor
+
+# ---
+tmap_style(style = "classic")
+## tmap style set to "classic"
+## other available styles are: 
+## "white", "gray", "natural", "cobalt", "col_blind", 
+## "albatross", "beaver", "bw", "watercolor"
+
+qtm(World, fill = "life_exp")
+```
+
+```{r}
+tmap_options_diff()
+## current tmap options (style "classic") that are different from default tmap options (style "white"):
+## $sepia.intensity
+## [1] 0.7
+## 
+## $frame.double.line
+## [1] TRUE
+## 
+## $fontfamily
+## [1] "serif"
+## 
+## $compass.type
+## [1] "rose"
+## 
+## $basemaps
+## [1] "Esri.WorldTopoMap"
+## 
+## $basemaps.alpha
+## [1] 0.5
+
+tmap_options_reset()
+## tmap options successfully reset
+```
+
+Styles included in tmap are: "white", "gray", "natural", "cobalt", "col_blind", "albatross", "beaver", "bw", "classic".  
+tmap中包含的樣式為："white", "gray", "natural", "cobalt(鈷)",
+"col_blind", "albatross(信天翁)", "beaver(海狸)", "bw", "classic"。  
+
+New styles can saved and loaded with `tmap_style_save` and `tmap_style_load` respectively.
+可以分別使用`tmap_style_save`和`tmap_style_load`保存和加載新樣式。
+
+In version 1.x, tmap contained a couple of predefined format functions, such as tm_format_World.  
+In version 2.0, these have been replaced by the general function tm_format.  
+With this function, the available formats can be retrieved, as well as the configuration of a specific format.  
+With the function `tm_format_add` new formats can be created.  
+在1.x版中，tmap包含幾個預定義的格式函數，例如tm_format_World。  
+在2.0版中，這些已被通用函數`tm_format`代替。  
+使用此功能，可以檢索可用格式以及特定格式的配置。  
+使用功能`tm_format_add`可以創建新格式。
+
+```{r}
+tmap_format()
+## available formats are: "World", "World_wide", "NLD", "NLD_wide"
+
+panorama <- tmap_format(format = "World")
+panorama$asp <- 6
+tmap_format_add(panorama, name = "panorama")
+## format panorama succesfully added. Use this format with tm_format("panorama")
+## panorama: 全景圖
+
+tmap_format()
+## available formats are: "World", "World_wide", "NLD", "NLD_wide", "panorama"
+```
+
+```{r}
+## NLD, National Levee Database: 國家堤防數據庫
+
+# ---
+tm_shape(World) + tm_polygons("HPI") + tm_format("panorama")
+# tm_shape(World) + tm_polygons("HPI") + tm_format("NLD")
+# tm_shape(World) + tm_polygons("HPI") + tm_format("NLD_wide")
+# or: qtm(World, fill = "HPI", format = "panorama")
+```
+
+
+## color palettes
+
+Viridis palettes (from the `viridis`/`viridisLite` package) are supported natively.  
+E.g. `qtm(World, "HPI", fill.palette = "-plasma")`.  
+本機支持Viridis調色板(來自viridis/viridisLite軟件包)。  
+例如。 `qtm(World, "HPI", fill.palette = "-plasma")`。  
+
+Notice that, like with the color brewer palette names, a minus sign will reverse the palette.  
+See `tmaptools::palette_explorer()` to explore the color brewer and viridis palettes interactively.
+請注意，與顏色調製器調色板名稱一樣，減號將反轉調色板。  
+請參閱tmaptools::palette_explorer()以交互方式瀏覽顏色釀造商和viridis調色板。
+
+> tmaptools::palette_explorer()，這東西方便好用，選好想要的顏色就會提供程式碼。
+
+The arguments that define the color palette mapping has been made more intuitive. The newly added layer function arguments `midpoint` and `stretch.palette` replace `auto.palette.mapping`:  
+定義調色板映射的參數已變得更加直觀。  
+新添加的圖層函數自變量`midpoint`和`Stretch.palette`替換了`auto.palette.mapping`: 
+
+- Categorical palettes.  
+The argument `stretch.palette` determines whether a palette is stretched out when there are more categories than available colors.  
+If set to `FALSE`, the palette is repeated.
+分類調色板。  
+參數Stretch.palette確定當類別多於可用顏色時是否擴展調色板。  
+如果設置為FALSE，則重複調色板。
+
+- Diverging palettes.  
+The argument `midpoint` determines which value should be mapped to the middle (neutral) color of the diverging color palette.  
+By default, it is set to 0 if there are positive and negative values.  
+This could mean that only a part of the color palette is used,  
+e.g. when the value range is \[-5, 20\] and the palette is `"RdBu"`, the colors will range from light red (-5) to white (0) to dark blue (20).  
+If there are only positive or only negative values, the full palette is shown.  
+不同的調色板。  
+中點參數確定應將哪個值映射到發散調色板的中間(中性)顏色。  
+默認情況下，如果有正值和負值，則將其設置為0。  
+這可能意味著僅使用了調色板的一部分，  
+例如，當值的範圍是[-5，20]並且調色板是"RdBu"時，顏色的範圍從淺紅色(-5)到白色(0)到深藍色(20)。  
+如果只有正值或只有負值，則會顯示完整的調色板。
+
+- Sequential palettes.  
+Nothing has changed for sequential palettes.  
+When `midpoint` has been specified, the palette is regarded as a diverging palette,  
+with the middle color interpreted as the neutral color.  
+順序調色板。  
+順序調色板沒有任何變化。  
+當指定了中點時，調色板被視為發散調色板，中間顏色被解釋為中性顏色。
+
+> 顏色配置這一段，第二點大概懂，其他的可能要實際應用才知道。
+
+
+## filter, difference between NA and NULL
+
+> 欄位篩選，以及數據 NULL 和 NA 的差異
+
+The argument filter has been added to `tm_shape`.  
+Features that are included will be visualized as usual.  
+參數過濾器已添加到tm_shape。  
+所包含的功能將照常顯示。  
+
+Excluded features will still be visualized but without color being mapped.  
+Instead, they will be colored with `colorNULL`, a new argument of the layer functions.  
+排除的特徵仍將可視化，但不會映射顏色。  
+取而代之的是，它們將使用`colorNULL`著色，這是圖層函數的新參數。  
+
+Note the difference with `colorNA`, which is used to color features with missing data.
+注意colorNA的區別，`colorNA`用於為缺少數據的要素上色。
+
+
+To show the potiential of this filter  
+the following code chunk creates a map in which only European countries are colored:
+為了顯示此過濾器的潛力，  
+以下代碼塊創建了一個僅對歐洲國家進行著色的地圖：
+
+```{r}
+# id: name of the data variable that specifies the indices of the polygons. Only used for "view" mode 
+
+# ---
+# ttm()+
+tm_shape(World, filter = World$continent=="Europe") +
+    tm_polygons(col = "HPI", id = "name", 
+                colorNULL = "red", #為排除的地區上色。
+                colorNA = "green" #篩選出的地區，如果缺失值(NA)的顏色。
+                )
+```
+
+Countries outside Europe are colored with `colorNULL`, which is `grey95` by default.  
+It can be adjusted in the layer functions, such as `tm_polygons`, and in `tmap_options`.
+歐洲以外的國家/地區以colorNULL上色，默認為grey95。  
+可以在圖層函數(例如`tm_polygons`)和`tmap_options`中對其進行調整。
+
+There are also missing values in the data (Kosovo and Moldova) which are colored with the `colorNA` (by default `grey85`).  
+數據中還缺少值(科索沃和摩爾多瓦)，這些值用`colorNA`著色(默認為`grey85`)。
+
+
+---
+
+# END
+

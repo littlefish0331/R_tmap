@@ -1,0 +1,4 @@
+"0","data(World)"
+"0",""
+"0","# tmap_mode(""plot"") + "
+"0","qtm(World, fill = ""life_exp"")"
