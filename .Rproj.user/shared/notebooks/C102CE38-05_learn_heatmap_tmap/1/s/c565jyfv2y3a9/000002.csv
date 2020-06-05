@@ -1,4 +1,0 @@
-"0","data(""World"")"
-"0",""
-"0","tm_shape(shp = World) +"
-"0","    tm_polygons(col = ""HPI"")"

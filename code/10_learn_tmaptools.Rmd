@@ -1,0 +1,479 @@
+---
+title: "10_learn_tmaptools"
+author: "Author: [Steve, Yu](https://github.com/littlefish0331)"
+date: "`r Sys.setlocale('LC_TIME', 'English'); format(Sys.time(), '%Y %b %d %a, %H:%M:%S')`" 
+output:
+  rmdformats::readthedown:
+    css: style.css
+    self_contained: TRUE
+    thumbnails: FALSE
+    lightbox: TRUE
+    gallery: FALSE
+    highlight: tango #探戈橘
+    code_folding: show
+    toc_depth: 3
+    
+---
+
+```{r setup, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+rm(list = ls()); gc()
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(data.table)
+library(tmap)
+library(tmaptools)
+knitr::opts_chunk$set(
+	# 這邊是針對所有chunk的設定
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# File Target
+
+- learn tmptoola package
+
+裡面有很多函式是基於 [osm-search/Nominatim: Open Source search based on OpenStreetMap data](https://github.com/osm-search/Nominatim)
+
+---
+
+# Tool functions (shape)
+
+## approx_areas
+
+NLD_muni: World and Netherlands map，世界和荷蘭地圖
+
+```{r}
+data(NLD_muni)
+NLD_muni %>% head
+```
+
+```{r}
+NLD_muni$area <- approx_areas(NLD_muni, total.area = 33893)
+NLD_muni %>% head
+```
+
+```{r}
+tm_shape(NLD_muni) + 
+  tm_bubbles(size="area", title.size = expression("Area in " * km^2))
+```
+
+```{r}
+# function that returns min, max, mean and sum of area values
+summary_areas <- function(x) {
+  list(min_area = min(x),
+       max_area = max(x),
+       mean_area = mean(x),
+       sum_area = sum(x))
+}
+```
+
+```{r}
+# area of the polygons
+# approx_areas(NLD_muni) %>% head
+# approx_areas(NLD_muni) %>% str
+approx_areas(NLD_muni) %>% summary_areas()
+```
+
+```{r}
+# area of the polygons, adjusted corrected for a specified total area size
+# 多邊形的面積，調整為指定的總面積大小
+approx_areas(NLD_muni, total.area = 33893) %>% summary_areas()
+```
+
+
+```{r}
+# proportional area of the polygons
+approx_areas(NLD_muni, target = "prop") %>% summary_areas()
+```
+
+```{r}
+# area in squared miles
+approx_areas(NLD_muni, target = "mi mi") %>% summary_areas()
+```
+
+```{r}
+# sf:::st_proj_info()
+
+# ---
+# area of the polygons when unprojected
+# NLD_muni %>% sf::st_transform(crs = 4326) %>% head
+# NLD_muni %>% head
+NLD_muni %>% sf::st_transform(crs = 4326) %>% approx_areas() %>% summary_areas()
+```
+
+## approx_distances
+
+```{r}
+data(NLD_prov)
+```
+
+```{r}
+# North-South and East-West distances of the Netherlands
+approx_distances(NLD_prov)
+approx_distances(NLD_prov) %>% str
+```
+
+```{r}
+# Distance between Maastricht and Groningen
+p_maastricht <- geocode_OSM("Maastricht")$coords
+p_groningen <- geocode_OSM("Groningen")$coords
+approx_distances(p_maastricht, p_groningen, projection = 4326, target = "km")
+# approx_distances(p_maastricht, p_groningen, target = "km") 
+# 沒有指定projection，會變成計算普通直角坐標距離。
+```
+
+```{r}
+# Check distances in several projections
+# 可知投影真的有差
+sapply(c(3035, 28992, 4326), function(projection) {
+  p_maastricht <- geocode_OSM("Maastricht", projection = projection)$coords
+  p_groningen <- geocode_OSM("Groningen", projection = projection)$coords
+  approx_distances(p_maastricht, p_groningen, projection = projection)
+})
+```
+
+## bb
+
+看不太懂 參數relative 的作用。
+
+```{r}
+## load shapes
+data(NLD_muni)
+data(World)
+```
+
+```{r}
+## get bounding box (similar to sp's function bbox)
+bb(NLD_muni)
+bb(NLD_muni) %>% str
+```
+
+```{r}
+## extent it by factor 1.10
+bb(NLD_muni, ext = 1.10)
+```
+
+```{r}
+## convert to longlat
+bb(NLD_muni, projection = 4326)
+```
+
+```{r}
+## change existing bounding box
+bb(NLD_muni, ext=1.5)
+bb(NLD_muni, width=2, relative = TRUE)
+bb(NLD_muni, xlim=c(.25, .75), ylim=c(.25, .75), relative = TRUE)
+bb(NLD_muni, xlim=c(.25, .75), ylim=c(.25, .75), relative = F)
+```
+
+## bb_poly, bb_earth
+
+```{r}
+data(NLD_muni)
+```
+
+```{r}
+current.mode <- tmap_mode("view")
+qtm(bb_poly(NLD_muni))
+```
+
+```{r}
+# restore mode
+tmap_mode(current.mode)
+```
+
+## get_asp_ratio
+
+```{r}
+data(World)
+get_asp_ratio(World)
+```
+
+```{r}
+bb(World)
+get_asp_ratio(bb(World))
+```
+
+
+```{r}
+tm <- qtm(World)
+get_asp_ratio(tm)
+```
+
+---
+
+# Spatial transformation functions
+
+## crop_shape
+
+有底像是交集的動作。
+
+```{r}
+data(World, NLD_muni, land, metro)
+qtm(land, raster = "trees", style = "natural")
+```
+
+```{r}
+# 參數polygon = T，表示區塊的中心要重疊在邊界內才會留下來。
+tmap_mode("view")
+land_NLD <- crop_shape(land, NLD_muni, polygon = T)
+qtm(land_NLD, raster = "trees", style = "natural")
+```
+
+```{r}
+# 參數polygon = F，表示區塊只要有碰到邊界，就會算。
+land_NLD <- crop_shape(land, NLD_muni, polygon = F)
+qtm(land_NLD, raster = "trees", style = "natural")
+```
+
+```{r}
+metro_Europe <- crop_shape(x = metro, 
+                           y = World[World$continent == "Europe", ], 
+                           polygon = TRUE)
+qtm(World) +
+  tm_shape(metro_Europe) +
+  tm_bubbles("pop2010", col="red", title.size="European cities") +
+  tm_legend(frame = TRUE)
+# ttm()
+```
+
+## simplify_shape
+
+```{r}
+data(World)
+World %>% head
+```
+
+```{r eval = F}
+# show different simplification factors
+# simplify_shape(): 函式沒有包好~ 目前失效。
+jsonlite::toJSON(World, force = T) %>% str
+
+# ---
+tm1 <- qtm(World %>% simplify_shape(shp = ., fact = 0.05, force_FC = F), title = "Simplify 0.05")
+tm2 <- qtm(World %>% simplify_shape(fact = 0.1), title = "Simplify 0.1")
+tm3 <- qtm(World %>% simplify_shape(fact = 0.2), title = "Simplify 0.2")
+tm4 <- qtm(World %>% simplify_shape(fact = 0.5), title = "Simplify 0.5")
+tmap_arrange(tm1, tm2, tm3, tm4)
+
+# ---
+# show different options for keeping smaller (sub)units
+tm5 <- qtm(World %>% simplify_shape(keep.units = TRUE, keep.subunits = TRUE),
+title="Keep units and subunits")
+tm6 <- qtm(World %>% simplify_shape(keep.units = TRUE, keep.subunits = FALSE),
+title="Keep units, ignore small subunits")
+tm7 <- qtm(World %>% simplify_shape(keep.units = FALSE),
+title="Ignore small units and subunits")
+tmap_arrange(tm5, tm6, tm7)
+```
+
+
+---
+
+# Tool functions (colors)
+
+## get_brewer_pal
+
+```{r}
+get_brewer_pal("Blues")
+get_brewer_pal("Blues", contrast = c(.4, .8))
+get_brewer_pal("Blues", contrast = c(0, 1))
+get_brewer_pal("Blues", n = 15, contrast = c(0, 1))
+```
+
+```{r}
+get_brewer_pal("RdYlGn")
+get_brewer_pal("RdYlGn", n=11)
+get_brewer_pal("RdYlGn", n=11, contrast = c(0, .4))
+get_brewer_pal("RdYlGn", n=11, contrast = c(.4, 1))
+```
+
+```{r}
+get_brewer_pal("Set2", n = 12)
+get_brewer_pal("Set2", n = 12, stretch = FALSE)
+```
+
+## map_coloring
+
+```{r}
+data(World, metro)
+World$color <- map_coloring(World, palette = "Pastel2")
+qtm(World, fill = "color")
+```
+
+```{r}
+# map_coloring used indirectly: qtm(World, fill = "MAP_COLORS")
+data(NLD_prov, NLD_muni)
+tm_shape(NLD_prov) +
+  tm_fill("name", legend.show = FALSE) +
+  tm_shape(NLD_muni) +
+  tm_polygons("MAP_COLORS", palette = "Greys", alpha = .25) +
+  tm_shape(NLD_prov) +
+  tm_borders(lwd = 2) +
+  tm_text("name", shadow = TRUE) +
+  tm_format(format = "NLD", # Format specified for maps of the Netherlands(為荷蘭地圖指定的格式)
+            title = "Dutch provinces and\nmunicipalities", 
+            bg.color = "white")
+```
+
+## palette_explorer
+
+```{r}
+# 會在瀏覽器開啟一個新的視窗
+# palette_explorer()
+```
+
+---
+
+# Input and output functions
+
+## geocode_OSM
+
+```{r}
+geocode_OSM("India")
+geocode_OSM("CBS Weg 1, Heerlen")
+geocode_OSM("CBS Weg 1, Heerlen", projection = 28992)
+```
+
+```{r}
+data(metro)
+
+# sample 5 cities from the metro dataset
+five_cities <- metro[sample(length(metro), 5), ]
+```
+
+```{r}
+# obtain geocode locations from their long names
+five_cities_geocode <- geocode_OSM(five_cities$name_long, as.sf = TRUE)
+five_cities_geocode
+```
+
+```{r}
+# 有差異是因為地名相同。
+
+# ---
+# change to interactive mode
+current.mode <- tmap_mode("view")
+# plot metro coordinates in red and geocode coordinates in blue
+# zoom in to see the differences
+tm_shape(five_cities) +
+  tm_dots(col = "blue", size = 0.1) +
+  tm_shape(five_cities_geocode) +
+  tm_dots(col = "red")
+# restore current mode
+tmap_mode(current.mode)
+```
+
+## read_GPX
+
+沒有例子
+
+## read_osm
+
+Choropleth with OSM background
+
+```{r eval = F}
+# load Netherlands shape
+data(NLD_muni)
+
+# read OSM raster data
+# 這個函式目前不能用惹~因為他沒有遵守一些 OpenStreetMap的規則
+# [Issue with generating maps in RStudio : / Questions and Answers / OpenStreetMap Forum](https://forum.openstreetmap.org/viewtopic.php?id=68079)
+osm_NLD <- read_osm(NLD_muni, ext = 1.1)
+```
+
+```{r}
+# plot with regular tmap functions
+
+# tm_shape(osm_NLD) +
+# tm_rgb() +
+tm_shape(NLD_muni) +
+  tm_polygons("population", 
+              # convert2density =TRUE, 
+              style = "kmeans", 
+              alpha = .7, 
+              palette = "Purples")
+```
+
+A close look at the building of Statistics Netherlands in Heerlen
+近距離觀察海爾倫荷蘭統計局的大樓
+
+下面的例子已經失效，底圖都只會抓取基本的osm。
+
+```{r}
+# create a bounding box around the CBS (Statistics Netherlands) building
+CBS_bb <- bb("CBS Weg 11, Heerlen", width = .003, height = .002)
+
+# read Microsoft Bing satellite and OpenCycleMap OSM layers
+CBS_osm1 <- read_osm(CBS_bb, type = "bing")
+CBS_osm2 <- read_osm(CBS_bb, type = "opencyclemap")
+
+# plot OSM raster data
+qtm(CBS_osm1)
+qtm(CBS_osm2)
+```
+
+## rev_geocode_OSM
+
+```{r}
+data(metro)
+
+# sample five cities from metro dataset
+set.seed(1234)
+five_cities <- metro[sample(length(metro), 5), ]
+```
+
+```{r eval = F}
+# obtain reverse geocode address information
+# 程式碼失敗~ 因為沒有照 osm 的規則。
+
+# ---
+addresses <- rev_geocode_OSM(five_cities, zoom = 6)
+five_cities <- sf::st_sf(data.frame(five_cities, addresses))
+```
+
+```{r}
+# change to interactive mode
+current.mode <- tmap_mode("view")
+tm_shape(five_cities) +
+  tm_markers(text="name")
+
+# restore current mode
+tmap_mode(current.mode)
+```
+
+
+---
+
+# Others useful finctions
+
+## calc_densities
+
+```{r}
+data(NLD_muni)
+NLD_muni_pop_per_km2 <- calc_densities(NLD_muni,
+                                       var = c("pop_men", "pop_women"), 
+                                       target = "km km")
+NLD_muni_pop_per_km2 %>% head
+```
+
+```{r}
+NLD_muni <- sf::st_sf(data.frame(NLD_muni, NLD_muni_pop_per_km2))
+tm_shape(NLD_muni) +
+  tm_polygons(c("pop_men_km.2", "pop_women_km.2"),
+              title = expression("Population per " * km^2), style = "quantile") +
+  tm_facets(free.scales = FALSE) +
+  tm_layout(panel.show = TRUE, panel.labels = c("Men", "Women"))
+```
+
+## get_neighbours
+
+沒有例子
+
+---
+
+# END
+

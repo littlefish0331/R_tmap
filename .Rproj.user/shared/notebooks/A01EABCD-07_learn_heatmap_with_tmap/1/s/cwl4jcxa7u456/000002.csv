@@ -1,8 +1,0 @@
-"0","#############################"
-"0","## Figure 13"
-"0","#############################"
-"0","c3 <- qtm(crimes_osm, raster.saturation = 0, raster.alpha = 1) + "
-"0","  qtm(crimes, symbols.col = ""Crime.type"", symbols.size = 0.5) +"
-"0","  tm_legend(outside = TRUE)"
-"0",""
-"0","c3"

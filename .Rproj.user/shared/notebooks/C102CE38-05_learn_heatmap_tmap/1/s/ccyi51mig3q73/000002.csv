@@ -1,5 +1,0 @@
-"0","tmap_options(bg.color = ""black"", legend.text.color = ""white"")"
-"0",""
-"0","tm_shape(World) +"
-"0","  tm_polygons(col = ""HPI"", "
-"0","              title = ""Happy Planet Index"")"

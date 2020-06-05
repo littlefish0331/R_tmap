@@ -1,8 +1,0 @@
-"0","tmap_mode(""plot"")"
-"0","## tmap mode set to plotting"
-"0",""
-"0","data(NLD_muni)"
-"0","tm1 <- tm_shape(NLD_muni) + tm_polygons(col = ""population"", convert2density = TRUE)"
-"0","tm2 <- tm_shape(NLD_muni) + tm_bubbles(size = ""population"") + tm_layout(legend.show = T)"
-"0",""
-"0","tmap_arrange(tm1, tm2)"

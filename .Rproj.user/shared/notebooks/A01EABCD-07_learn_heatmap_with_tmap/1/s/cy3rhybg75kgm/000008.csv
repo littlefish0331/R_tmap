@@ -1,5 +1,0 @@
-"0",""
-"0","# 輸出會比較好看~"
-"0","tmap_save(tm = m2, filename = ""../data/classic.png"","
-"0","          width = 6.125, "
-"0","          scale = .7, dpi = 300, outer.margins = 0) #有錯誤題是說要設定outer.margins=0.1"

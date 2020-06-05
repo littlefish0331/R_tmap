@@ -1,4 +1,0 @@
-"0","tmap_mode(""view"")"
-"0","tm_shape(shp = World) +"
-"0","  tm_polygons(col = c(""HPI"", ""economy"")) +"
-"0","  tm_facets(sync = TRUE, ncol = 2)"

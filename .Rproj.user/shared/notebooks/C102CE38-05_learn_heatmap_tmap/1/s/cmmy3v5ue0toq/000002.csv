@@ -1,8 +1,0 @@
-"0","tmap_style(""classic"")"
-"0","## tmap style set to ""classic"""
-"0","## other available styles are: "
-"0","## ""white"", ""gray"", ""natural"", ""cobalt"", ""col_blind"", "
-"0","## ""albatross"", ""beaver"", ""bw"", ""watercolor"""
-"0",""
-"0","tm_shape(World) +"
-"0","    tm_polygons(""HPI"", title = ""Happy Planet Index"")"
